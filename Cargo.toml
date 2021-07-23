@@ -1,0 +1,11 @@
+[package]
+name = "image-as-text"
+version = "0.0.0"
+authors = ["Patrick Winters <19wintersp@gmail.com>"]
+edition = "2018"
+description = "CLI to turn an image into Unicode text"
+
+[dependencies]
+braille = { git = "https://github.com/19wintersp/Braille.git", branch = "patch-1" }
+image = "0.23.14"
+clap = "2.33.3"
