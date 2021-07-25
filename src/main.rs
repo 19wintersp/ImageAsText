@@ -24,6 +24,7 @@ fn main() {
 		(@arg output: -o --output +takes_value "Specify output file")
 		(@arg size: -s --size +takes_value "Specify maximum dimension size")
 		(@arg threshold: -t --threshold +takes_value "Specify brightness threshold")
+		(@arg double: -d --("double-width") "Write characters twice")
 		(@arg braille: -b --braille "Use braille instead of ASCII")
 		(@arg blocks: -B --blocks conflicts_with[braille] "Use blocks instead of ASCII")
 	).get_matches();
@@ -87,15 +88,17 @@ fn main() {
 	} else {
 		THRESHOLD
 	};
+	
+	let double = matches.is_present("double");
 
 	println!(
 		"{}",
 		if matches.is_present("braille") {
-			to_braille(image, thresh)
+			to_braille(image, thresh, double)
 		} else if matches.is_present("blocks") {
-			to_blocks(image, thresh)
+			to_blocks(image, thresh, double)
 		} else {
-			to_ascii(image)
+			to_ascii(image, double)
 		},
 	);
 }
@@ -122,7 +125,7 @@ fn is_dark(image: DynamicImage, x: u32, y: u32, t: u8) -> usize {
 	if (lum as u8) < t { 1 } else { 0 }
 }
 
-fn to_braille(image: DynamicImage, t: u8) -> String {
+fn to_braille(image: DynamicImage, t: u8, double: bool) -> String {
 	let mut out = String::new();
 
 	let ch = (image.height() as f32 / 4f32).ceil() as u32;
@@ -133,13 +136,13 @@ fn to_braille(image: DynamicImage, t: u8) -> String {
 			let x = cx * 2;
 			let y = cy * 4;
 
-			out.push(
-				BRAILLE
+			let ch = BRAILLE
 					[is_dark(image.clone(), x + 0, y + 0, t)][is_dark(image.clone(), x + 1, y + 0, t)]
 					[is_dark(image.clone(), x + 0, y + 1, t)][is_dark(image.clone(), x + 1, y + 1, t)]
 					[is_dark(image.clone(), x + 0, y + 2, t)][is_dark(image.clone(), x + 1, y + 2, t)]
-					[is_dark(image.clone(), x + 0, y + 3, t)][is_dark(image.clone(), x + 1, y + 3, t)]
-			);
+					[is_dark(image.clone(), x + 0, y + 3, t)][is_dark(image.clone(), x + 1, y + 3, t)];
+			if double { out.push(ch); }
+			out.push(ch);
 		}
 
 		out.push('\n')
@@ -148,7 +151,7 @@ fn to_braille(image: DynamicImage, t: u8) -> String {
 	out
 }
 
-fn to_blocks(image: DynamicImage, t: u8) -> String {
+fn to_blocks(image: DynamicImage, t: u8, double: bool) -> String {
 	let mut out = String::new();
 
 	let ch = (image.height() as f32 / 2f32).ceil() as u32;
@@ -159,11 +162,11 @@ fn to_blocks(image: DynamicImage, t: u8) -> String {
 			let x = cx * 2;
 			let y = cy * 2;
 
-			out.push(
-				BOX
+			let ch = BOX
 					[is_dark(image.clone(), x + 0, y + 0, t)][is_dark(image.clone(), x + 1, y + 0, t)]
-					[is_dark(image.clone(), x + 0, y + 1, t)][is_dark(image.clone(), x + 1, y + 1, t)]
-			);
+					[is_dark(image.clone(), x + 0, y + 1, t)][is_dark(image.clone(), x + 1, y + 1, t)];
+			if double { out.push(ch); }
+			out.push(ch);
 		}
 
 		out.push('\n')
@@ -172,14 +175,16 @@ fn to_blocks(image: DynamicImage, t: u8) -> String {
 	out
 }
 
-fn to_ascii(image: DynamicImage) -> String {
+fn to_ascii(image: DynamicImage, double: bool) -> String {
 	let mut out = String::new();
 
 	for y in 0..image.height() {
 		for x in 0..image.width() {
 			let brightness = pixel_brightness(image.get_pixel(x, y));
 
-			out.push(ASCII_CHARS[(brightness / 32) as usize]);
+			let ch = ASCII_CHARS[(brightness / 32) as usize];
+			if double { out.push(ch); }
+			out.push(ch);
 		}
 
 		out.push('\n');
